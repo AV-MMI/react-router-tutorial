@@ -1,9 +1,13 @@
+import { useEffect } from "react";
+
 import {
    Outlet,
-   Link,
+   useNavigation,
    useLoaderData,
    Form,
    redirect,
+   NavLink,
+   useSubmit,
 } from "react-router-dom"
 import { getContacts, createContact  } from "../contacts";
 
@@ -13,36 +17,58 @@ export async function action(){
   return redirect(`/contacts/${contact.id}/edit`)
 }
 
-export async function loader(){
-  const contacts = await getContacts();
-  return { contacts };
+export async function loader({ request }){
+  let url = new URL(request.url)
+  let query = url.searchParams.get("q");
+  let contacts = await getContacts(query)
+  return { contacts, query };
 }
 
 export default function Root() {
-  const { contacts } = useLoaderData();
+  const { contacts, query } = useLoaderData();
+  const navigation = useNavigation();
+  const submit = useSubmit();
+
+  const searching =
+    navigation.location &&
+    new URLSearchParams(navigation.location.search).has(
+      "q"
+    );
+
+  useEffect(() => {
+    document.getElementById("q").value = query;
+  }, [query]);
   return (
       <>
         <div id="sidebar">
           <h1>React Router Contacts</h1>
           <div>
-            <form id="search-form" role="search">
+            <Form id="search-form" role="search">
               <input
                 id="q"
+                className={searching ? "loading" : ""}
                 aria-label="Search contacts"
                 placeholder="Search"
                 type="search"
                 name="q"
+                defaultValue={query}
+                onChange={(event) => {
+                  const isFirstSearch = query == null;
+                  submit(event.currentTarget.form, {
+                    replace: !isFirstSearch,
+                  });
+                }}
               />
               <div
                 id="search-spinner"
                 aria-hidden
-                hidden={true}
+                hidden={!searching}
               />
               <div
                 className="sr-only"
                 aria-live="polite"
               ></div>
-            </form>
+            </Form>
             <Form method="post">
               <button type="submit">New</button>
             </Form>
@@ -52,7 +78,7 @@ export default function Root() {
             <ul>
               {contacts.map((contact) => (
                 <li key={contact.id}>
-                  <Link to={`contacts/${contact.id}`}>
+                  <NavLink to={`contacts/${contact.id}`}>
                     {contact.first || contact.last ? (
                       <>
                         {contact.first} {contact.last}
@@ -61,7 +87,7 @@ export default function Root() {
                       <i>No Name</i>
                     )}{" "}
                     {contact.favorite && <span>★</span>}
-                  </Link>
+                  </NavLink>
                 </li>
               ))}
             </ul>
@@ -72,7 +98,9 @@ export default function Root() {
           )}
           </nav>
         </div>
-        <div id="detail">
+        <div id="detail" className={
+          navigation.state === "loading" ? "loading" : ""
+        }>
           <Outlet />
         </div>
       </>

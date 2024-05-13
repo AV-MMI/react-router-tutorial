@@ -17,6 +17,7 @@ import ErrorPage from './error-page';
 import Contact,
  {
   loader as contactLoader,
+  action as contactAction,
  }
  from './routes/contact';
 
@@ -40,7 +41,8 @@ const router = createBrowserRouter([
         path: "contacts/:contactId",
         element: <Contact />,
         loader: contactLoader,
-        errorElement: <h2>Such contact doesn't exist</h2>
+        action: contactAction,
+        errorElement: <h2>Such contact doesn't exist</h2>,
       },
       {
         path: "contacts/:contactId/edit",
